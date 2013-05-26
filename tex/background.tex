@@ -1,0 +1,705 @@
+\chapter{Background} %{{{1
+\label{cha:background}
+
+%\lettrine[nindent=0em]{\textcolor{red}{T}}{his chapter will}
+\lettrine{T}{his chapter will}
+give an overview of Mozilla Firefox and the Talos performance test suite that
+Mozilla employs to detect performance changes, namely improvements and
+regressions, in new code. It will also give an example of the problem of
+variance in this test suite and list previous work done in the area.
+
+\section{Mozilla and Mozilla Firefox} %{{{2
+\label{sec:bg:firefox}
+
+The Mozilla Foundation\footnote{\url{http://www.mozilla.org/}} is a global
+non-profit organization with its headquarters in the \textsc{usa}. Its mission
+is to ``promote openness [\ldots] on the web''%
+\footnote{\url{http://www.mozilla.org/about/mission.html}}
+and make sure that it is accessible for everyone using Free and Open Source
+tools%
+\footnote{\url{http://www.mozilla.org/about/}}\textsuperscript{,}%
+\footnote{\url{http://www.mozilla.org/about/manifesto.en.html}}.
+
+The main means of pursuing this goal is by having The Mozilla Corporation%
+\footnote{\url{http://www.mozilla.com/}}, a subsidiary of the Mozilla
+Foundation, develop the Firefox web browser and releasing it as Free Software%
+\footnote{\url{http://www.mozilla.org/MPL/license-policy.html}}. Firefox is a
+modern web browser that supports a wide range of web-related standards like
+\textsc{html5}, \textsc{css} in various versions, JavaScript, and a lot more.
+The Firefox source code is kept in a publicly accessible \emph{Mercurial}%
+\footnote{\url{http://mercurial.selenic.com/}}
+version control repository%
+\footnote{\url{http://hg.mozilla.org/}}.
+For this work version 5.0 of Firefox was used which was the current version at
+the time when we started collecting the final data.
+
+\section{The Talos Test Suite} %{{{2
+\label{sec:bg:talos}
+
+The \emph{Talos} test suite (named after the bronze giant from Greek legend
+that protected Crete's coasts) is a collection of 17 different tests that
+evaluate the performance of various aspects of Firefox. A list of those tests
+is given in Table~\ref{tab:bg:tests}. One thing to note here is that there are
+two types of results for the individual tests: most of them measure the
+milliseconds it takes for a specific action to complete, so the lower the
+result the better, but the tests that are part of the \texttt{dromaeo}
+framework measure the number of times a specific test can be run during one
+second, so here a higher number is better.
+
+\begin{table}[tbp]
+    \centering
+    \caption{The various performance tests employed by Mozilla}
+    \label{tab:bg:tests}
+    \footnotesize
+%    \small
+%    \setlength{\extrarowheight}{2pt}
+    \renewcommand{\arraystretch}{1.3}
+    \definecolor{tableshade}{HTML}{DDDDDD}
+    \rowcolors{3}{tableshade}{white}
+    \begin{tabular}{l >{\RaggedRight}p{7cm} l}
+        \toprule
+        Test name & Test subject & Unit \\
+        \midrule
+        \texttt{a11y}
+            & Accessibility features
+            & Milliseconds \\
+        \texttt{dromaeo\_basics}
+            & Basic JavaScript operations like array manipulation and string
+              handling
+            & Runs\slash second \\
+        \texttt{dromaeo\_css}
+            & \textsc{css} (Cascading Style Sheets) manipulation with JavaScript
+            & Runs\slash second \\
+        \texttt{dromaeo\_dom}
+            & \textsc{dom} (Document Object Model) node manipulation with
+              JavaScript
+            & Runs\slash second \\
+        \texttt{dromaeo\_jslib}
+            & \textsc{dom} node manipulation using the `jQuery' and `Prototype'
+              JavaScript libraries
+            & Runs\slash second \\
+        \texttt{dromaeo\_sunspider}
+            & Various JavaScript tests from the `SunSpider' WebKit test suite
+              \citep{stachowiak_announcing_2007}, integrated into the `Dromaeo'
+              suite
+            & Runs\slash second \\
+        \texttt{dromaeo\_v8}
+            & Various JavaScript tests from the `V8' Google Chrome test suite
+              \citep{google_inc._v8_2008}, integrated into the `Dromaeo' suite
+            & Runs\slash second \\
+        \texttt{tdhtml}
+            & Various tests that create animations using JavaScript \textsc{dom}
+              manipulation
+            & Milliseconds \\
+        \texttt{tgfx}
+            & Some graphics operations like displaying a large amount of text,
+              tiled images, image transformations and various borders
+            & Milliseconds \\
+        \texttt{tp\_dist}
+            & A page loading test that loads a number of popular websites and
+              measures the speed it takes to render them
+            & Milliseconds \\
+        \texttt{tp\_dist\_shutdown}
+            & The time it takes to completely shut down the browser after the
+              page loading test
+            & Milliseconds \\
+        \texttt{tsspider}
+            & The unaltered SunSpider JavaScript benchmark
+            & Milliseconds \\
+        \texttt{tsvg}
+            & Rendering of \textsc{svg} images
+            & Milliseconds \\
+        \texttt{tsvg\_opacity}
+            & Rendering of partially-transparent \textsc{svg} images
+            & Milliseconds \\
+        \texttt{ts}
+            & Startup time until the first page gets loaded
+            & Milliseconds \\
+        \texttt{ts\_shutdown}
+            & Shutdown speed directly after starting up the browser
+            & Milliseconds \\
+%        \texttt{twinopen}
+%            & The time it takes to open a new browser window
+%            & Milliseconds \\
+        \texttt{v8}
+            & The unaltered V8 JavaScript benchmark
+            & Milliseconds \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The purpose of this test suite is to evaluate the performance of a specific
+Firefox \emph{build}, meaning the result of the compilation of a specific
+version of the source code. As new code is checked in into the Mercurial
+repository, various actions (see below) are performed on it in order to assess
+the quality of the new code. Since a complete run of the whole process takes
+about 4 hours or more \citep{stoica_mozillas_2010}, a build infrastructure
+consisting of about 1000 machines, mostly Mac Minis
+\citep{gasparnian_release_2010}, is used to carry out those actions. In a
+slightly simplified overview this process consists of three parts:
+
+\begin{enumerate}
+    \item The new code is compiled on a range of different operating systems,
+        namely Windows, Mac OS X and Linux. This is both to ensure that the
+        current version actually cleanly compiles on all of these operating
+        systems and to have a working build for the next two parts.
+    \item A number of unit tests are run on the new build. This tries to
+        ensure that the code changes did not introduce any bugs, like for
+        example crashing when a certain action is performed or displaying
+        popular pages incorrectly.
+    \item The Talos test suite is run on the build. This is done both to track
+        improvements in performance and to detect regressions.
+\end{enumerate}
+
+This process of \emph{Continuous Integration}~\citep{fowler_continuous_2006}
+allows for quick detection of problems that could otherwise lead to a lengthy
+search for the cause and ensures a consistent quality throughout the project.
+
+Ideally this process would be run on every check-in into the repository.
+However, in order to reduce the load on the machines used and to allow for
+quick fixes of mistakes in a commit (like for example forgetting to add a
+file) there is a short wait period before the build starts. If there is a new
+check-in during that time it will be included in the next build.
+
+The focus of this work is on part three, the Talos performance evaluation. We
+will also mostly focus on variance in unchanging code and the detection of
+regressions in order to limit the scope to a manageable degree
+\citep{ocallahan_private_2010}.
+
+\section{An Illustrative Example} %{{{2
+\label{sec:bg:example}
+
+\tikzsetnextfilename{tp-dist-perftastic}
+\begin{figure}[tpb]
+    \centering
+%    \includegraphics{data/tp_dist_perftastic.pdf}
+    \input{data/tp_dist_perftastic.tex}
+    \caption[\texttt{tp\_dist} example sequence]{Page load speed \texttt{tp\_dist} example sequence with data taken from \url{graphs.mozilla.org}}
+    \label{fig:bg:tpdistperf}
+\end{figure}
+
+In the following we use the term \emph{run} to refer to a single execution of
+the whole or part of the Talos test suite and \emph{series} to refer to a
+sequence of runs, usually consisting of 30 single runs (see also
+Section~\ref{sec:bg:setup}).
+
+Figure~\ref{fig:bg:tpdistperf} illustrates an example series of the
+\texttt{tp\_dist} part of the test suite over most of the year 2010 on one
+particular machine. This test loads a number of popular web pages and
+calculates the mean of the time it took to completely render them. Important
+to note here is that the pages are loaded from the local hard disk, so effects
+like network latency do not come into play~-- however, the speed and latency
+of the hard drive, and potentially other external factors, can still have an
+effect outside the control of Firefox itself. This will be addressed in
+Chapter~\ref{cha:external}.
+
+There are a few interesting observations to be made in this graph. One is the
+big drop in August, going from about 600 to a bit over 300 and then staying
+there. This looks like a clear case of a genuine change in performance, most
+likely due to an optimization in the code. Another observation is about the
+high variance in the results during the rest of the year. There seems to be no
+common trend to them, they are ``all over the place''. We cannot really tell
+whether those results are due to noise or real code changes. One clear
+candidate for a code change happens in the middle of June, where the result
+fits right into the trend that will be established later on in August. But why
+is it only a single result, as opposed to the later ones? One possible
+explanation is that the optimization introduced a bug and was therefore
+removed again until that bug was fixed, which took until August.
+
+So now we have a plausible explanation for one of the results. But that still
+does not really tell us anything about the rest. Could we apply the same
+heuristic that lets us explain the big change~-- seeing it ``sticking out'' of
+the general trend~-- and use it in a more statistically sound way to try to
+explain the other results? We can~-- to a certain degree.
+
+The exact details of the best way to do this will be explained in
+Chapter~\ref{cha:statistics}, but let us first have a very simple look at how
+we could put a number on the variance of a test suite series. We will do this
+by running a base line series using a standard setup without any special
+optimizations.
+%Note
+%that our actual goal is to explain \emph{new} results, not retroactively
+%explain results from the past, so our approach here will be slightly
+%different.
+
+\section{Statistics Preliminaries} %{{{2
+\label{sec:bg:stats}
+
+The Talos suite already employs a few techniques that are meant to mitigate
+the effect of random variance on the test results. One of the most important
+is that each test is run 5-20 times, depending on the test, and the results
+are averaged. A statistical optimization that is already being done is that
+the maximum result of these repetitions is discarded before the average is
+calculated. Since in almost all cases this is the first result, which includes
+the time of the file being fetched from the hard disk, it serves as a simple
+case of steady-state analysis where only the results using the cache -- which
+has relatively stable access times -- are going to be used.
+
+As a concrete example, the \texttt{tp\_dist} test as used in our experiments
+loads 26 different pages 10 times each. Then the median of the 10 results from
+each page is calculated, and finally the mean of all the different medians is
+presented as the final result. This allows us to make use of the \emph{central
+limit theorem} \citep{cam_central_1986}, which states that our results will
+approximately follow a normal distribution as long as they all come from the
+same distribution~-- in our case this means that the source code has to remain
+unchanged in between runs. But as mentioned earlier we are only concerned with
+unchanging code anyway so this poses no problem for us. Interesting to note is
+that Figure~\ref{fig:bg:tpdistperf} shows in the so-called ``rug'' plot on the
+left that even with changing code the test seems to largely follow a normal
+distribution, with the exception of the large jump in August which essentially
+split the distribution into two independent ones.
+
+Normal distributions make it easier to apply various statistical analyses on
+data, but it is not strictly required in our case. Still, checking for
+normality of the distribution can give valuable insights about the nature of
+the variance.
+
+Beginning with this chapter we will be using various statistical techniques to
+evaluate our results in a statistically valid way. This usually consists of
+having a \emph{null hypothesis}, which is the ``conservative'' view that the
+results are in line with our current theory and do not indicate that the
+current theory might be wrong. What exactly this means for a specific test
+will be explained in the relevant sections.
+
+The other part of these techniques is the $p$-value. This is the probability
+that the null hypothesis \emph{can not be rejected}. In other words, it is the
+probability of getting the results we are analysing under the assumption that
+the null hypothesis is true. If this probability is lower than a previously
+chosen \emph{significance level} then the results are said to be
+\emph{statistically significant}. Traditionally a significance level of 0.05
+is the most common one for these kinds of analyses, and that is what we will
+be using here.
+
+\section{The Base Line Test} %{{{2
+\label{sec:bg:base}
+
+\subsection{Experimental Setup} %{{{2
+\label{sec:bg:setup}
+
+For this and all the following experiments in this thesis we used a Dell
+Optiplex 780 computer with an Intel Core 2 Duo 3.0\,GHz processor and 4\,GB of
+\textsc{ram} running Ubuntu Linux 10.04 with Kernel 2.6.32. To start with we
+ran the whole test suite 30 times back-to-back as a series using the same
+executable in an idle \textsc{gnome} desktop without any special adjustments
+of our own. Using the same executable guarantees that changes in the
+performance cannot be caused by code changes and are thus solely attributable
+to noise. The only adjustments that we made were two techniques used on the
+official Talos machines%
+\footnote{\url{https://wiki.mozilla.org/ReferencePlatforms/Test/FedoraLinux}}:
+
+\begin{itemize}
+    \item Replace the \texttt{/dev/random} device, which provides true random
+        numbers, with the pseudo-random number generator
+        \texttt{/dev/urandom}.
+    \item Disable \textsc{cpu} frequency scaling and fix the processors at
+        their highest frequency. This prevents variance introduced by
+        switching between the possible frequencies and the case where a
+        processor decides to run at different frequencies during repeated runs
+        of the same test for some reason.
+\end{itemize}
+
+The number 30 for the runs was chosen as a compromise between different
+requirements. The first was that in order for the central limit theorem to be
+applicable the common rule of thumb is that at least 30 samples are needed. In
+addition a higher number of runs would allow us to determine whether the
+results would settle in some kind of \emph{steady state} where the variance is
+much lower than between the first few runs. Finally, a practical requirement
+prevented us from choosing a significantly higher number: since every test run
+took about one hour to complete on our machine we had to settle on a number
+that would allow us to reasonably experiment with many different parameters
+without having to wait unreasonably long for the result. In addition initial
+tests with 50 runs showed no meaningful difference between the numbers. Thus
+30 was chosen as a suitable compromise.
+
+\subsection{Results} %{{{2
+\label{sec:bg:results}
+
+Figure~\ref{fig:bg:tpdist} shows the results of the \texttt{tp\_dist} page
+loading test, and Figure~\ref{fig:bg:a11y} shows the results of the
+\texttt{a11y} accessibility test~-- both serve as good examples for the
+complete test suite results. Here we have~-- as expected~-- no drastic
+outliers, but we do still have a non-trivial amount of variance. Looking at
+the rug plot it seems that the \texttt{tp\_dist} test does \emph{not} follow a
+normal distribution, the \texttt{a11y} on the other hand looks better. There
+are two ways to verify these suspicions: \emph{quantile-quantile (Q-Q) plots}
+and the \emph{Shapiro-Wilk test} \citep{shapiro_analysis_1965}.
+
+Figure~\ref{fig:bg:qqex} shows the Q-Q plots for our two example tests. They
+are interpreted roughly in the following way: if the data points closely
+follow the line the sample is said to follow a normal distribution. The
+\texttt{a11y} test supports that, except for two outliers the points follow
+the line very well. However, as already suspected, this is not true for the
+\texttt{tp\_dist} test~-- most of the points are quite far away from the line.
+It is interesting to note, though, that there seem to be two different linear
+trends in the data points~-- one in the points near the bottom of the graph
+and one near the top right, almost as if there are two different influences
+guiding them.
+
+For a technique that needs less interpretation we can use the Shapiro-Wilk
+test. It analyses the sample and determines whether the null hypothesis of the
+distribution being normal can be rejected or not. The resulting $p$-value for
+the \texttt{a11y} test is 0.135, implying that the normality of the sample
+cannot be rejected if we use the standard significance level of 0.05. For the
+\texttt{tp\_dist} test however, $p$ is < 0.01, so we have the affirmation that
+the sample is most likely not normal.
+
+\tikzsetnextfilename{tp-dist-o}
+\begin{figure}[tpb]
+%\begin{fullwidth}
+    \centering
+%    \includegraphics{data/tp_dist_normal.pdf}
+    \input{data/tp_dist_o.tex}
+    \caption{\texttt{tp\_dist} results of 30 runs}
+    \label{fig:bg:tpdist}
+%\end{fullwidth}
+\end{figure}
+
+\tikzsetnextfilename{a11y-o}
+\begin{figure}[tpb]
+    \centering
+%    \includegraphics{data/a11y_o.pdf}
+    \input{data/a11y_o.tex}
+    \caption{\texttt{a11y} results of 30 runs}
+    \label{fig:bg:a11y}
+\end{figure}
+
+\begin{figure}[tpb]
+    \centering
+%    \includegraphics{file}
+    \tikzsetnextfilename{tp-dist-o-qq}
+    \subfloat[Q-Q plot for \texttt{tp\_dist}]{
+        \label{fig:bg:tpdistqq}
+        \input{data/tp_dist_o_qq.tex}
+    }\\
+    \tikzsetnextfilename{a11y-o-qq}
+    \subfloat[Q-Q plot fot \texttt{a11y}]{
+        \label{fig:bg:a11yqq}
+        \input{data/a11y_o_qq.tex}
+    }
+    \caption{Two example Q-Q plots}
+    \label{fig:bg:qqex}
+\end{figure}
+
+Table~\ref{tab:bg:results} shows a few properties of the results for the
+complete test suite. As a typical statistical measure we included the standard
+deviation and the coefficient of variation (CoV), which is simply the standard
+deviation divided by the absolute value of the mean for easier comparison
+between different tests. The standard deviation shows us that, indeed, the
+variance for some of the tests is quite high.
+%Unfortunately, the
+%standard deviation is not very helpful in determining whether a new result
+%fits into an overall trend~-- in this case, if we added a 31st value to any of
+%the tests.
+The general idea here is that we want to be able to detect regressions that
+are as small as 0.5\,\% \citep{ocallahan_private_2010}, so it should be possible
+to analyse the results in a way so that we can distinguish between genuine
+changes and noise at this level of precision.
+
+\begin{table}
+    \centering
+    %\footnotesize
+    \caption{Results of the base line test}
+    \label{tab:bg:results}
+    \begin{tabular}{lrrrrr}
+        \toprule
+        & & & \multicolumn{2}{c}{Max diff (\%)\textsuperscript{1}} & \\
+        \cmidrule(lr){4-5}
+        Test name                   & StdDev & CoV\textsuperscript{2}  & Absolute & To mean & $p$-value \\
+        \midrule
+        \texttt{a11y}               & 2.23   & 0.69 & 3.38     & 2.08    & 0.135     \\
+        \texttt{dromaeo\_basics}    & 4.41   & 0.53 & 2.57     & 1.62    & 0.064     \\
+        \texttt{dromaeo\_css}       & 11.36  & 0.30 & 1.39     & 0.88    & 0.135     \\
+        \texttt{dromaeo\_dom}       & 1.02   & 0.41 & 1.99     & 1.14    & 0.338     \\
+        \texttt{dromaeo\_jslib}     & 0.53   & 0.30 & 1.19     & 0.60    & 0.661     \\
+        \texttt{dromaeo\_sunspider} & 5.65   & 0.54 & 2.09     & 1.16    & 0.017     \\
+        \texttt{dromaeo\_v8}        & 2.02   & 0.86 & 3.03     & 1.77    & 0.006     \\
+        \texttt{tdhtml}             & 0.94   & 0.33 & 1.31     & 0.73    & 0.156     \\
+        \texttt{tgfx}               & 0.80   & 5.68 & 25.60    & 18.88   & $<$ 0.001 \\
+        \texttt{tp\_dist}           & 1.77   & 1.16 & 4.42     & 3.30    & $<$ 0.001 \\
+        \texttt{tp\_dist\_shutdown} & 27.09  & 5.14 & 16.51    & 8.72    & 0.080     \\
+        \texttt{ts}                 & 2.27   & 0.59 & 2.45     & 1.66    & 0.001     \\
+        \texttt{ts\_shutdown}       & 7.28   & 2.00 & 6.88     & 3.44    & 0.410     \\
+        \texttt{tsspider}           & 0.11   & 1.15 & 4.04     & 2.57    & 0.014     \\
+        \texttt{tsvg}               & 1.43   & 0.04 & 0.17     & 0.10    & 0.267     \\
+        \texttt{tsvg\_opacity}      & 0.62   & 0.74 & 3.56     & 2.02    & 0.055     \\
+        \texttt{v8}                 & 0.11   & 1.42 & 4.31     & 3.59    & $<$ 0.001 \\
+        \bottomrule
+    \end{tabular}
+    \\[0.2cm]
+    \footnotesize
+    \RaggedRight
+    \hspace{0.5cm}\textsuperscript{1}Difference between highest and lowest values: $(highest-lowest)/mean*100$\\
+    \hspace{0.5cm}\textsuperscript{2}Coefficient of variation: $\frac{StdDev}{mean}$
+\end{table}
+
+% p-values
+%a11y              0.1353
+%dromaeo_basics    0.0641
+%dromaeo_css       0.1351
+%dromaeo_dom       0.3382
+%dromaeo_jslib     0.6607
+%dromaeo_sunspider 0.0174
+%dromaeo_v8        0.0060
+%tdhtml            0.1558
+%tgfx              0.0005
+%tp_dist           0.0000
+%tp_dist_shutdown  0.0798
+%ts                0.0012
+%ts_shutdown       0.4104
+%tsspider          0.0138
+%tsvg              0.2670
+%tsvg_opacity      0.0553
+%v8                0.0000
+
+Our first approach in this chapter is to simply look at the maximum difference
+between all of the values in our series taken as a percentage of the mean,
+similar to \citet{georges_statistically_2007},
+\citet{mytkowicz_producing_2009} and \citet{alameldeen_variability_2003}. In
+other words we take the difference between the highest and the lowest value in
+our series and divide it by the mean. If a new result would increase this
+value, it would be assumed to not be noise. The result of this analysis can be
+seen in Table~\ref{tab:bg:results}. We can see that almost none of the tests
+are anywhere near our desired accuracy, so using this method would give us no
+useful information. But what if we use a slightly different method? We could
+measure the difference from the \emph{mean} instead of between the highest and
+lowest value. Checking our table again again we can see that the values in
+this case do look better, but they are still too far away from being actually
+useful.
+
+An additional problem with the two techniques just explained is that they do
+not account for significant changes in the performance. For example, in a
+situation similar to that in Figure~\ref{fig:bg:tpdistperf} computing the
+maximum difference or the difference from the global mean would lead to highly
+unreliable results due to the big, genuine changes in June and August~-- since
+most changes, both other genuine ones and those caused by noise should usually
+be far smaller than that they will remain completely undetected. So our simple
+approach is clearly not sufficient.
+
+Chapter~\ref{cha:statistics} will pursue more sophisticated methods to try to
+address these concerns. However, even with better statistical methods it will
+be challenging to reach our goal~-- the noise is simply too much. Therefore in
+the next two chapters we will first have a look at the physical causes for the
+noise and try to reduce the noise itself as much as possible before we
+continue with our statistical analysis.
+
+Before we go on with our analysis there is one important thing to note.
+Creating an environment that is as noise-free as possible will necessarily
+result in a somewhat artificial setup, one that may not reflect the
+environments that Firefox is usually run in on users' computers in an entirely
+accurate way. However, trying to account for all the possible combinations of
+factors that may be present on ``normal'' computers is essentially impossible.
+This means that certain exceptional setups that could result in degraded
+performance may stay undetected, but our investigation of the ``clean'' case
+should result in an overall improvement in the vast majority of cases.
+
+\section{Related Work} %{{{2
+\label{sec:bg:related}
+
+This section will present two different approaches that have been used in
+previous work to reduce nondeterminism in software testing: trying to identify
+and measure the actual variance and trying to increase the determinism in
+multi-threaded programs.
+
+\subsection{Variance Measurements} %{{{3
+\label{sec:bg:relvar}
+
+\citet{mytkowicz_producing_2009} investigated what they called
+\emph{measurement bias}: small changes in an experimental setup that can
+introduce significant bias in the result. They claimed that many researchers
+do not pay enough attention to this bias and investigated its effect on a set
+of experiments. Specifically they considered two different scenarios: (1) the
+\textsc{unix} environment size and (2) the program link order. They found that
+both can have a measurable impact on benchmark results, up to 8\,\% for the
+environment size and 4\,\% for the link order. The cause in both cases was
+attributed to memory layout. The size of the environment influenced the
+beginning of the stack and thus the alignment of its content, resulting in a
+layout that was not optimal for the hardware architecture in many cases.
+Similarly, the link order changed the code layout in the executable which
+affected hardware buffers and various other hardware aspects like branch
+prediction. As a partial solution to this problem they proposed using a large
+benchmark suite and randomizing the experimental setup.
+
+A similar conclusion was reached by \citet{gu_code_2004}. Their original goal
+was to evaluate different object layouts in the Sable Java \textsc{vm}%
+\footnote{\url{http://www.sable.mcgill.ca/}} for its copying garbage
+collector. However, during their experiments they discovered unexpected
+differences in performance that could not be explained by their layout
+changes. This led them to investigate how the changes affected the low-level
+code execution by using hardware performance counters. They found that even
+the adding of code that was never executed could lead to shifted code segments
+in the resulting executables which then has a measurable impact on the
+instruction cache, the cycle count, and the data cache. These differences were
+still not well correlated with the performance changes, though.
+
+The presence of variability in multi-threaded workloads both in real and
+simulated systems was investigated by \citet{alameldeen_variability_2003}.
+They described two different kinds of variability: time variability, that is
+different performance characteristics during different phases of a single run,
+and space variability, the execution of different code paths caused for
+example by the operating system scheduling threads differently during
+different runs. They showed that variability can be a problem even in
+deterministic simulations under certain conditions. In order to quantify their
+results they introduced two new metrics: the \emph{wrong conclusion ratio},
+the percentage that a wrong conclusion is drawn from an experiment pair, and
+the \emph{range of variability}, the difference between the maximum and
+minimum values of a series of runs as a percentage of the mean, which is
+identical to our absolute maximum difference metric. As a solution to the
+variability problem they proposed averaging over a number of runs using some
+statistical techniques to estimate the optimal sample size.
+
+\citet{georges_statistically_2007} tried to give the performance analysis of
+Java programs a statistically sound base since they noted that many published
+papers lack a rigorous statistical background and instead invent their own
+methods for analysing results. This situation can lead to incorrect
+conclusions in extreme cases, especially since managed runtime systems are
+notoriously difficult to benchmark. They first gave an overview of basic
+statistical concepts like confidence intervals, the central limit theorem, and
+the \textsc{anova} test for comparing alternatives. These techniques were then
+demonstrated on an example that measured the start-up and the steady-state
+performance of various garbage collector strategies in the Java \textsc{vm},
+which also showed that their results occasionally differed from results in
+other papers that did not use the same rigorous approach.
+
+\citet{kalibera_benchmark_2005} investigated the dependency of benchmarks on
+the initial, random state of the system. They claimed that the variation during
+one run of a benchmark, even if it accounts for things like external
+disruptions, does not capture the true extent of possible variance and that
+benchmarks are therefore not the reproducible processes they are usually
+thought to be. They tested their assumptions on a few benchmarks that produced
+many samples in one run to be averaged over and ran them several times
+independently, finding that the between-runs variance was much higher than the
+within-runs variance.
+%within-runs variance (see Figure~\ref{fig:bg:kaliex} for an example from their
+%paper).
+%\begin{sidefigure}
+%    \includegraphics[width=\marginparwidth]{pictures/kalibera_variance.png}
+%    \caption{An example of both kinds of variance\label{fig:bg:kaliex}}
+%\end{sidefigure}
+Similar to previously mentioned papers they tested two
+example causes of such variance: non-determinism in memory allocation and code
+compilation. Their investigation revealed that there is some correlation
+between those phenomena and variance but they admitted that listing and
+eliminating all possible causes would be impossible. They, too, suggested a
+benchmarking setup that tries to alleviate the problem as much as possible by
+running a benchmark several times to be able to use statistical methods that
+take both kinds of variance into account and so end up at a more reliable
+average. Note that this setup is similar to ours as the Talos tests already
+produce a within-tests average that is then used for our between-tests\slash
+runs analysis.
+
+A slightly different issue, the effect of ``coincidental artifacts'' on an
+evaluation, was investigated by \citet{tsafrir_reducing_2007}. They defined
+coincidental artifacts as effects that influenced the outcome of a performance
+evaluation but were outside the scope of the benchmark, like ``unique
+interactions between the system and the specific trace used''. They gave the
+example of a scheduler evaluation on a specific job workload where changing
+the workload by only 0.046\,\% changed the result by 8\,\%. To alleviate this
+problem they introduced their methodology of \emph{shaking} the input, that is
+running the benchmark several times with a different set of noise added to the
+workload each time\footnote{This is also known as \emph{fuzzing}.} and then
+averaging over the result, and demonstrated it on a scheduling algorithm and a
+set of different workloads. An important consideration of this technique that
+they mentioned was that care has to be taken when shaking the workload so that
+it does not get distorted in a way that will lead to unreliable results,
+meaning that only less fragile parameters should be modified. Their results
+showed that even with a relatively small amount of shaking the reliability of
+their benchmark could be significantly improved, leading to a smoother
+progression with fewer outliers. Note that this technique is not really
+applicable for us since many of our tests evaluate concrete functionality
+instead of a random workload and the required repeated tests would increase
+our test times too much.
+
+\subsection{Deterministic Multithreading} %{{{3
+\label{sec:bg:detmult}
+
+Most of the work concerned with the determinism of multi-threaded programs
+until recently has only dealt with the problem of \emph{replayability}, that
+is a technique that records a log of one run and then offers the possibility
+to replay that run on another machine for debugging purposes. This is not
+useful for our purposes since we are not concerned with a single run but with
+a comparison between different runs, especially since those techniques usually
+do not pay attention to performance characteristics. However, in the last few
+years there have been some attempts to introduce determinism to a wider range
+of uses. Since threads are used for a few purposes in Firefox (see
+Chapter~\ref{cha:internal} for details) this is worth looking into.
+
+\citet{devietti_dmp:_2009} presented a way to make threading deterministic
+using a technique they called \emph{deterministic serialization} of parallel
+execution. Their technique works by introducing a token that is required for
+each memory access -- or each group of finite accesses they called a
+\emph{quantum} -- and is passed on from thread to thread in a deterministic
+fashion. Since this method introduces significant performance degradation due
+to threads having to wait for the token they proposed some hardware changes
+that would drastically reduce the overhead. In order to support this
+hypothesis they implemented the changes in a hardware simulator and as a pure
+software framework for comparison. Their results showed that the hardware
+version had negligible performance degradation compared to a nondeterministic
+system and that the software version was at least usable for debugging
+purposes.
+
+A somewhat similar approach was used by \citet{olszewski_kendo:_2009}.
+However, their goal was to make thread determinism usable on today's commodity
+hardware without requiring hardware changes. In order to reduce the
+performance degradation of this approach they used what they called \emph{weak
+determinism} which does not apply to every memory access but instead only to
+lock acquisition. For this they implemented a deterministic subset of the
+\textsc{posix} Thread (pthread) \textsc{api} that utilized hardware
+performance counters to track the locking behaviour. They then used the
+\textsc{splash-2} benchmark suite to evaluate their framework, finding that it
+only introduced a 16\,\% overhead on a 4-processor system. Unfortunately, due
+to their changes to the pthread library it is not possible to run any
+arbitrary application; only a subset of programs work.
+
+\citet{bergan_coredet:_2010} introduced a ``compiler and runtime system''
+based on the \textsc{llvm} compiler suite that uses a sophisticated mechanism
+based on an ownership model for memory regions and a deterministic commit
+protocol for committing changes to shared memory. They showed that their
+system scales quite well, but it does introduce a performance loss of
+1.2$\times$--6$\times$. In addition it is highly dependent on small changes in
+either the input or the program itself; while it guarantees that the same
+program run with the same input will always execute in a deterministic fashion
+there are no such guarantees for even small changes in the program.
+
+A new operating system abstraction called a \emph{Deterministic Process Group}
+(\textsc{dpg}) was proposed by \citet{bergan_deterministic_2010}. These
+\textsc{dpg}s are defined as groups of processes that are executed completely
+free of \emph{internal} nondeterminism like thread scheduling and were
+implemented using techniques introduced by \citet{devietti_dmp:_2009} and
+\citet{bergan_coredet:_2010}. In addition they described a type of program
+called a \emph{shim} that acts as a wrapper around a \textsc{dpg} and that can
+be used to eliminate external nondeterminism like file access and to implement
+a record\slash replay mechanism. Similar to the previous work they introduce
+some amount of performance loss (around 2.5$\times$ on average) and do not
+guarantee determinism after program changes. The authors also explicitly state
+that ``\textsc{dpg}s guarantee deterministic output, but not deterministic
+performance''.
+
+\citet{cui_stable_2010} tried to address the problem of input dependence for
+deterministic execution by creating a what they called \emph{stable} system
+based on schedule memoization. Their idea was that many working schedules can
+be reused even for different inputs since the internal workings of a program
+stay the same. In order to accomplish this they developed a system that
+memoizes working schedules along with their constraints on the input so they
+can be recalled if new input matches the given constraints of a past schedule.
+Their implementation also utilizes \textsc{llvm} and only considers lock
+synchronization instead of full memory access synchronization similar to
+\citet{olszewski_kendo:_2009} for performance reasons. Depending on the use of
+locks in the programs this can still lead to significant performance overhead,
+though. In addition their system requires some changes to the source code of
+the programs and does not guarantee deterministic performance, only behaviour
+for the memoized schedules.
+
+Considering all of the constraints of these deterministic multithreading
+systems we must conclude that they are not really applicable to our situation,
+at least not yet. While the current systems provide a definite benefit for
+tasks like debugging the fact that performance determinism is not guaranteed
+(and indeed probably impossible) due to the way these systems realize their
+threading guarantees makes them unsuitable for analysing variance. This is
+because in order to guarantee execution determinism the systems can suspend
+threads if they are scheduled by the operating system in a different way from
+the first run, and they then have to wait for the operating system to schedule
+the thread that is actually supposed to be run at a certain point in time. In
+this way the threads are executed in exactly the same order every time, but
+the actual timing can vary wildly depending on the operating system's
+scheduling decisions. However, it will be interesting to follow the
+developments in this field of research.
