@@ -1,7 +1,7 @@
 /* Test file for C language.
  * Attempt to include as many aspects of the C language as possible.
  *
- * $Id: test.c,v 1.12 2008-05-17 20:16:03 zappo Exp $
+ * $Id: test.c,v 1.12 2008/05/17 20:16:03 zappo Exp $
  *
  */
 /* types of include files */
@@ -35,6 +35,10 @@ struct {
   int slot31;
   char slot32;
   float slot33;
+  union {
+      int a;
+      long b;
+  }
 } var_of_anonymous_struct;  
 
 typedef struct mystruct1 typedef_of_mystruct1;
