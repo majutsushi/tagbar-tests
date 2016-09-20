@@ -82,7 +82,7 @@ typedef enum { enum_a = 3, enum_b } typedef_of_anonymous_enum;
 typedef int typedef_of_int;
 
 /* Here are some simpler variable types */
-int var1;
+static int var1;
 int varbit1:1;
 char var2;
 float var3;
